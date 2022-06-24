@@ -1,9 +1,14 @@
 import {CACHE_MANAGER, CanActivate, ExecutionContext, Inject, Injectable, UnauthorizedException} from "@nestjs/common";
-import {Observable} from "rxjs";
+import {firstValueFrom,  Observable, } from "rxjs";
+
 import {Cache} from "cache-manager";
+import {ClientProxy} from "@nestjs/microservices";
+
+
+
 @Injectable()
 export class JwtAuthGuard implements CanActivate{
-    constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
+    constructor(@Inject("TOKEN")private tokenClient: ClientProxy,@Inject(CACHE_MANAGER) private cacheManager: Cache ) {}
     canActivate(context: ExecutionContext): boolean | Promise<boolean> | Observable<boolean> {
 
 try{
@@ -12,19 +17,24 @@ try{
     if (!token){
         return false
     }
-    const checkToken = async (token: string):Promise<boolean> =>{
-
+    const checkToken = async (token: string):Promise<boolean> => {
         const oldCache = await  this.cacheManager.get(token);
-        console.log(oldCache)
         if(!oldCache){
-            const newToken = token // abstract service
-            await this.cacheManager.set(newToken, newToken , {ttl: 300})
+
+            let newToken = await tokenService(token)// abstract service
+            await this.cacheManager.set(`${newToken}`, newToken , {ttl: 300})
             return true
         }
         return true
     }
-   return  checkToken(token)
+    const tokenService = async (token:string)=>{
+        this.tokenClient.emit("create-token", token);
+        const newToken =  this.tokenClient.send({cmd:"newToken"}, '')
+         const  data = await firstValueFrom(newToken)
+         return data
 
+    }
+   return  checkToken(token)
 }
 catch (e){
     throw new UnauthorizedException({message:"Пользователь не авторизован"})

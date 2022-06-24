@@ -2,9 +2,11 @@ import {Body, Controller, Get, Param, Post, UseGuards, UseInterceptors} from '@n
 import {CreateUserDto} from "./dto/CreateUser.dto";
 import {JwtAuthGuard} from "../auth/jwt-auth-guard";
 import {UserService} from "./user.service";
+
 @Controller('user')
 export class UserController {
   constructor(private userService: UserService){}
+    @UseGuards(JwtAuthGuard)
     @Post()
     createUser(@Body() dto: CreateUserDto){
         return "Hello friend"
