@@ -18,10 +18,14 @@ try{
         return false
     }
     const checkToken = async (token: string):Promise<boolean> => {
+        console.log(token)
         const oldCache = await  this.cacheManager.get(token);
         if(!oldCache){
-
             let newToken = await tokenService(token)// abstract service
+            console.log(oldCache)
+            if (!newToken){
+                return false
+            }
             await this.cacheManager.set(`${newToken}`, newToken , {ttl: 300})
             return true
         }
@@ -29,7 +33,7 @@ try{
     }
     const tokenService = async (token:string)=>{
         this.tokenClient.emit("create-token", token);
-        const newToken =  this.tokenClient.send({cmd:"newToken"}, '')
+        const newToken = await this.tokenClient.send({cmd:"newToken"}, '')
          const  data = await firstValueFrom(newToken)
          return data
 
